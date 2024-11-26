@@ -1,0 +1,51 @@
+void _handleGoogleBtnClick(BuildContext context) async {
+  // for showing progress bar
+  Dialogs.showProgressbar(context);
+  bool hasInternet = await checkInternetConnectivity();
+
+  if (hasInternet) {
+    signInWithGoogle().then((success) async {
+      // for hiding progress bar
+      Navigator.pop(context);
+      if (success) {
+        final user = APIs.auth.currentUser;
+        if (user != null) {
+          log('Sign in with Google successful');
+          // await user.reload();
+          // Check if the user has registered
+          bool isRegistered = await APIs.isRegistered(user.uid);
+
+          if (isRegistered) {
+            // User has registered, navigate to WelcomePage
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => WelcomePage(user: widget.user)),
+            );
+          } else {
+            // User has not registered, create a new user in the database
+            await APIs.createUser();
+            await APIs.getSelfInfo();
+
+            // Navigate to RegisterPage
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => RegisterPage(user: _createChatUser(user))),
+            );
+          }
+        }
+      } else {
+        log('Sign in with Google failed');
+        Dialogs.showSnackbar(
+          context,
+          'Something went wrong (Check your internet connectivity)',
+        );
+      }
+    });
+  } else {
+    log('No internet connection');
+    Dialogs.showSnackbar(
+      context,
+      'No internet connectivity',
+    );
+  }
+}
